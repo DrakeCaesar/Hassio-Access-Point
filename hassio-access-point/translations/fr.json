@@ -14,7 +14,7 @@
 		},
 		"channel": {
 			"name": "Numéro du canal",
-			"description": "Le canal sur lequel diffuser. En 2,4GHz, les canaux 1, 6 ou 11 sont recommandés. En 5GHz, utilisez par exemple 36, 40, 44, 48, 100, 149 ou 157."
+			"description": "Le canal sur lequel diffuser. En 2,4GHz, les canaux 1, 6 ou 11 sont recommandés. En 5GHz, utilisez un canal non-DFS : 36, 40, 44 ou 48 (ou 149-165 si votre région l'autorise)."
 		},
 		"address": {
 			"name": "Adresse IP de l'hôte",
@@ -75,6 +75,10 @@
 		"country_code": {
 			"name": "Code pays",
 			"description": "Code pays à deux lettres en majuscules (par ex. `FR`) utilisé pour définir le domaine réglementaire WiFi. Nécessaire pour que de nombreux canaux 5GHz soient utilisables."
+		},
+		"dfs": {
+			"name": "Autoriser les canaux DFS",
+			"description": "Autoriser les canaux DFS 5GHz (52-144). Ceux-ci doivent écouter les radars pendant 60 s ou plus avant le démarrage du point d'accès, et la radio intégrée du Raspberry Pi ne prend pas en charge la détection radar. Ignoré en 2,4GHz."
 		},
 		"hostapd_config_override": {
 			"name": "Configuration personnalisée de HOSTAPD",

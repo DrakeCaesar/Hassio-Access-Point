@@ -14,7 +14,7 @@
 		},
 		"channel": {
 			"name": "Channel Number",
-			"description": "The channel to broadcast on. For 2.4GHz, 1, 6 or 11 is recommended. For 5GHz use e.g. 36, 40, 44, 48, 100, 149 or 157."
+			"description": "The channel to broadcast on. For 2.4GHz, 1, 6 or 11 is recommended. For 5GHz use a non-DFS channel: 36, 40, 44 or 48 (or 149-165 where your region allows it)."
 		},
 		"address": {
 			"name": "Host IP Address",
@@ -75,6 +75,10 @@
 		"country_code": {
 			"name": "Country Code",
 			"description": "Two-letter uppercase country code (e.g. `GB`) used to set the WiFi regulatory domain. Required for most 5GHz channels to be usable."
+		},
+		"dfs": {
+			"name": "Allow DFS Channels",
+			"description": "Allow 5GHz DFS channels (52-144). These must listen for radar for 60s or more before the AP starts, and the built-in Raspberry Pi radio does not support radar detection. Ignored on 2.4GHz."
 		},
 		"hostapd_config_override": {
 			"name": "HOSTAPD Custom Configuration",

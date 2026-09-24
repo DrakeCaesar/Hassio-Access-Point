@@ -64,6 +64,7 @@ BAND=$(bashio::config 'band' '2.4')
 COUNTRY_CODE=$(optional_config 'country_code')
 HT_CAPAB=$(optional_config 'ht_capab')
 VHT_CAPAB=$(optional_config 'vht_capab')
+DFS=$(bashio::config 'dfs' 'false')
 HOSTAPD_CONFIG_OVERRIDE=$(bashio::config 'hostapd_config_override' )
 CLIENT_INTERNET_ACCESS=$(bashio::config.false 'client_internet_access'; echo $?)
 CLIENT_DNS_OVERRIDE=$(bashio::config 'client_dns_override' )
@@ -113,17 +114,42 @@ fi
 # 2.4GHz -> hw_mode=g, 5GHz -> hw_mode=a.
 if [ "$BAND" == "5" ] ; then
     HW_MODE=a
-    # HT40+ is used so the 40MHz secondary channel sits above the primary one.
-    # [DSSS_CCK-40] is a 2.4GHz-only capability and must NOT be used on 5GHz.
-    DEFAULT_HT_CAPAB="[HT40+][SHORT-GI-20][SHORT-GI-40]"
     if [ "$CHANNEL" -lt 36 ] || [ "$CHANNEL" -gt 177 ] ; then
-        bashio::exit.nok "Channel $CHANNEL is not valid for the 5GHz band. Use a 5GHz channel such as 36, 40, 44, 48, 100, 149 or 157."
+        bashio::exit.nok "Channel $CHANNEL is not valid for the 5GHz band. Use 36, 40, 44 or 48 (non-DFS), or 149-165 where your region allows it."
+    fi
+    # HT40+ puts the 40MHz secondary channel above the primary, so it is not usable
+    # on the top channel of a block (48 -> 52 and 165 -> 169 are out of range).
+    if [ "$CHANNEL" -eq 48 ] || [ "$CHANNEL" -eq 165 ] ; then
+        HT40_MODE=HT40-
+    else
+        HT40_MODE=HT40+
+    fi
+    # [DSSS_CCK-40] is a 2.4GHz-only capability and must NOT be used on 5GHz.
+    DEFAULT_HT_CAPAB="[$HT40_MODE][SHORT-GI-20][SHORT-GI-40]"
+    # Channels 52-144 are DFS: they must listen for radar (CAC) before they are
+    # allowed to transmit, which takes 60s to 10 minutes and needs hardware support.
+    if [ "$CHANNEL" -ge 52 ] && [ "$CHANNEL" -le 144 ] ; then
+        IS_DFS=true
+    else
+        IS_DFS=false
     fi
 else
     HW_MODE=g
+    IS_DFS=false
     DEFAULT_HT_CAPAB="[HT40][SHORT-GI-20][DSSS_CCK-40]"
     if [ "$CHANNEL" -gt 13 ] ; then
         bashio::exit.nok "Channel $CHANNEL is not valid for the 2.4GHz band. Use a channel between 1 and 13."
+    fi
+fi
+
+# DFS channels are opt-in: without ieee80211h hostapd refuses them as "NO-IR RADAR",
+# which is what the cryptic "Could not select hw_mode and channel. (-3)" message means.
+if [ "$IS_DFS" == "true" ] ; then
+    if [ "$DFS" != "true" ] ; then
+        bashio::exit.nok "Channel $CHANNEL is a DFS channel (52-144). It must listen for radar before it may transmit, and the built-in Raspberry Pi radio cannot do that. Use a non-DFS channel such as 36, 40, 44 or 48 (or 149-165 where your region allows it), or set 'dfs' to true if your adapter supports radar detection."
+    fi
+    if [ -z "$COUNTRY_CODE" ] ; then
+        bashio::exit.nok "DFS channel $CHANNEL needs a regulatory domain. Set 'country_code' to your two-letter country code."
     fi
 fi
 
@@ -181,6 +207,14 @@ if [ -n "$COUNTRY_CODE" ] ; then
     echo "country_code=$COUNTRY_CODE"$'\n' >> /hostapd.conf
     logger "Add to hostapd.conf: ieee80211d=1" 1
     echo "ieee80211d=1"$'\n' >> /hostapd.conf
+fi
+
+# Enable DFS radar detection (CAC). Only meaningful together with a DFS channel,
+# and hostapd refuses ieee80211h without a country_code.
+if [ "$IS_DFS" == "true" ] ; then
+    logger "Add to hostapd.conf: ieee80211h=1" 1
+    echo "ieee80211h=1"$'\n' >> /hostapd.conf
+    logger "DFS channel $CHANNEL selected. hostapd will listen for radar for 60s or more before the AP becomes available." 0
 fi
 
 # Helpful when a 5GHz AP refuses to start: dual-band radios (e.g. the built-in
@@ -331,7 +365,16 @@ fi
 logger "## Starting hostapd daemon" 1
 # If debug level is greater than 1, start hostapd in debug mode
 if [ $DEBUG -gt 1 ]; then
-    hostapd -d /hostapd.conf & wait ${!}
+    hostapd -d /hostapd.conf &
 else
-    hostapd /hostapd.conf & wait ${!}
+    hostapd /hostapd.conf &
 fi
+HOSTAPD_PID=$!
+wait "$HOSTAPD_PID"
+HOSTAPD_STATUS=$?
+
+if [ $HOSTAPD_STATUS -ne 0 ] ; then
+    logger "hostapd exited with status $HOSTAPD_STATUS. Check the messages above: the usual causes are a DFS channel without radar support, a missing country_code, or an ht_capab/vht_capab flag the adapter does not support." 0
+fi
+
+exit $HOSTAPD_STATUS

@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.3] - 2026-09-24
+
+### Fixed
+- Explain DFS instead of failing cryptically. A DFS channel (52-144) is reported by hostapd as
+  `Frequency ... not allowed for AP mode, flags: ... NO-IR RADAR` followed by the opaque
+  `Could not select hw_mode and channel. (-3)`. The add-on now detects DFS channels up front and refuses to
+  start with a message naming the non-DFS alternatives.
+
+### Added
+- Optional `dfs` option to allow DFS channels. It appends `ieee80211h=1` so hostapd performs radar
+  detection, and requires `country_code`. Off by default, because the built-in Raspberry Pi radio cannot do
+  radar detection and the AP stays down for 60s-10min while it listens.
+- Log a hint when hostapd exits non-zero, pointing at the usual causes.
+
+### Changed
+- Pick the 40MHz direction from the channel: `HT40-` on 48 and 165, `HT40+` elsewhere. `HT40+` on those
+  channels would ask for a secondary channel outside the supported range.
+- Stop suggesting channel 100 in the channel descriptions; it is a DFS channel.
+
 ## [0.6.2] - 2026-09-24
 
 ### Fixed

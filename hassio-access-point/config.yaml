@@ -1,6 +1,6 @@
 ---
 name: Hass.io Access Point
-version: 0.6.2
+version: 0.6.3
 slug: hassio-access-point
 description: Create a WiFi access point to directly connect devices to Home Assistant
 arch: [armhf, armv7, aarch64, amd64, i386]
@@ -33,6 +33,7 @@ options:
   ieee80211ac: false
   vht_capab: ""
   country_code: ""
+  dfs: false
   hostapd_config_override: []
   client_internet_access: false
   client_dns_override: []
@@ -59,6 +60,7 @@ schema:
   ieee80211ac: bool
   vht_capab: str?
   country_code: str?
+  dfs: bool
   hostapd_config_override:
     - str?
   client_internet_access: bool

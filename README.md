@@ -33,7 +33,7 @@ start with a clear message if they don't match.
 - **ssid** (**required**): The name of your access point
 - **wpa_passphrase** (**required**): The passkey for your access point
 - **band** (_optional_): Which band to host the AP on. `2.4` (default) or `5`. The built-in radio on Raspberry Pi 3B+ and later is dual-band; earlier models are 2.4GHz-only
-- **channel** (**required**): The WiFi channel to use. 2.4GHz: 1-13 (1, 6 or 11 recommended). 5GHz: e.g. 36, 40, 44, 48, 100, 149 or 157
+- **channel** (**required**): The WiFi channel to use. 2.4GHz: 1-13 (1, 6 or 11 recommended). 5GHz: use a **non-DFS** channel - 36, 40, 44, 48, or 149-165 where your region allows it
 - **address** (**required**): The address of your hass.io WiFi card/network
 - **netmask** (**required**): Subnet mask of the network
 - **broadcast** (**required**): Broadcast address of the network
@@ -49,6 +49,7 @@ start with a clear message if they don't match.
 - **ieee80211ac** (_optional_): Enable 802.11ac (VHT) on the 5GHz band. Only enable if your WiFi card supports 802.11ac. Defaults to disabled
 - **vht_capab** (_optional_): Set WiFi adapter's VHT capabilities when 802.11ac is enabled, e.g. `[SHORT-GI-20][SHORT-GI-40][SHORT-GI-80]`. Leave blank to omit
 - **country_code** (_optional_): Two-letter uppercase country code (e.g. `GB`) used to set the WiFi regulatory domain. Required for most 5GHz channels to be usable. Leave blank to skip
+- **dfs** (_optional_): Allow 5GHz DFS channels (52-144). These must listen for radar (60s or more) before the AP starts, and the built-in Raspberry Pi radio does not support radar detection. Defaults to disabled
 - **hostapd_config_override** (_optional_): List of hostapd config options to add to hostapd.conf (can be used to override existing options)
 - **client_internet_access** (_optional_): Provide internet access for clients. 1 = enable
 - **client_dns_override** (_optional_): Specify list of DNS servers for clients. Requires DHCP to be enabled. Note: Add-on will try to use DNS servers of the parent host by default.
@@ -107,8 +108,11 @@ Note: use either allow or deny lists for MAC filtering. If using allow, deny wil
   channels without it.
 - The built-in Pi radio is 1x1 802.11ac, so it tops out at 80MHz. Don't enable `[SHORT-GI-160]` in
   `vht_capab`; use `[SHORT-GI-20][SHORT-GI-40][SHORT-GI-80]` at most.
-- Some 5GHz channels (52-144) are DFS channels that must scan for radar before transmitting, which can add
-  60s+ to startup, and DFS support in the Pi's `brcmfmac` firmware is unreliable. Prefer 36-48 or 149-165.
+- Some 5GHz channels (52-144) are DFS: they must listen for radar ("CAC") for 60s or more before they may
+transmit. hostapd will not use them at all unless `ieee80211h` is set, and the built-in Raspberry Pi radio
+**cannot** do radar detection, so DFS stays off by default and the add-on refuses to start on those channels
+with a clear message. Use 36-48, or 149-165 where your region allows it. Set **dfs** to `true` only if your
+adapter really supports radar detection.
 - Only one band can be hosted per add-on instance. If you want both 2.4GHz and 5GHz simultaneously, run a
   second copy of the add-on on a different interface and subnet.
 
