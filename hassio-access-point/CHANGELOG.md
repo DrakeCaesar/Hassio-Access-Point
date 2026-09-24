@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.6.4] - 2026-09-24
+
+### Added
+- Warn when DHCP is disabled. Clients that associate and complete the WPA handshake but are not handed an
+  IP address drop the connection and reconnect in a loop, which looks like an authentication problem but
+  is not. The add-on now says so in the log, and README has a Troubleshooting section.
+- Log whether dnsmasq actually started, with a pointer to the DHCP range if it did not.
+- Dump the effective `hostapd.conf` (passphrase masked) at `debug: 1`.
+
 ## [0.6.3] - 2026-09-24
 
 ### Fixed

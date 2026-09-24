@@ -321,6 +321,7 @@ if $(bashio::config.true "dhcp"); then
     fi
 else
 	logger "# DHCP not enabled. Skipping dnsmasq" 1
+	logger "DHCP is disabled, so clients will not be handed an IP address. Most phones and laptops then drop the connection and immediately reconnect, in a loop, just after the WPA handshake succeeds. Enable 'dhcp', or give the client a static address." 0
 fi
 
 is_masquerading_enabled() {
@@ -359,7 +360,18 @@ fi
 # Start dnsmasq if DHCP is enabled in config
 if $(bashio::config.true "dhcp"); then
     logger "## Starting dnsmasq daemon" 1
-    dnsmasq -C /dnsmasq.conf
+    if ! dnsmasq -C /dnsmasq.conf ; then
+        logger "dnsmasq failed to start, so clients will not be handed an IP address and will keep reconnecting. Check that dhcp_start_addr/dhcp_end_addr are on the $ADDRESS/$NETMASK subnet." 0
+    else
+        logger "dnsmasq started, handing out $DHCP_START_ADDR to $DHCP_END_ADDR on $INTERFACE" 1
+    fi
+fi
+
+# Dump the configuration we ended up with. Most "client cannot connect" reports are
+# far easier to diagnose from this than from the option values.
+if [ $DEBUG -ge 1 ] ; then
+    echo "# Effective /hostapd.conf:"
+    sed 's/^wpa_passphrase=.*/wpa_passphrase=********/' /hostapd.conf
 fi
 
 logger "## Starting hostapd daemon" 1

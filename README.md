@@ -120,6 +120,24 @@ If the add-on fails to start on 5GHz, set `debug: 1` and check the regulatory do
 regulatory domain must list your chosen channel as usable for AP operation. Setting `country_code` in the
 add-on covers this, but the host OS WLAN country must also be configured on some HAOS installs.
 
+### Troubleshooting
+
+**Clients connect, then immediately disconnect and reconnect in a loop.** The WPA handshake succeeded, so
+the radio link is fine - the client is leaving on its own. That is almost always because it cannot get an
+IP address. Enable **dhcp**, or give the client a static address. Without one, most phones and laptops drop
+the connection moments after associating.
+
+**`Could not select hw_mode and channel. (-3)`** - the channel is not usable. On 5GHz this is usually a DFS
+channel, see above. On either band it can also mean the radio does not support that channel.
+
+**`Invalid country_code 'null'`** - set **country_code** to two uppercase letters, e.g. `GB`.
+
+**`Missing required option '<x>'`** - the add-on's options do not match its schema; update the add-on to the
+latest version.
+
+Set **debug** to `1` to log the effective `hostapd.conf`, the DHCP range, whether dnsmasq started, and the
+regulatory domain. That is usually enough to see what went wrong.
+
 ### Device & OS compatibility
 
 New releases will always be tested on the latest Home Assistant OS using Raspberry Pi 3B+ and Pi 4, but existing versions won't be proactively tested when new Home Assistant OS/Supervisor versions are released. If a new HAOS/Supervisor version breaks something, please raise an issue.
