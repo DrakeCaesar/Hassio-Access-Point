@@ -156,6 +156,11 @@ if [ -z "$HT_CAPAB" ] ; then
     HT_CAPAB=$DEFAULT_HT_CAPAB
 fi
 
+case "$HT_CAPAB" in
+    *"[HT40+]"*|*"[HT40-]"*) HT40_ENABLED=true ;;
+    *)                       HT40_ENABLED=false ;;
+esac
+
 # Setup hostapd.conf
 logger "# Setup hostapd:" 1
 logger "Add to hostapd.conf: ssid=$SSID" 1
@@ -189,14 +194,16 @@ if [ "$BAND" == "5" ] && $(bashio::config.true 'ieee80211ac') ; then
         149|153|157|161)  VHT_CENTER=155 ;;
         *)               VHT_CENTER="" ;;
     esac
-    if [ -n "$VHT_CENTER" ] ; then
+    if [ "$HT40_ENABLED" != "true" ] ; then
+        logger "ht_capab has no [HT40+] or [HT40-], so VHT stays at 20/40MHz." 1
+    elif [ -n "$VHT_CENTER" ] ; then
         logger "Add to hostapd.conf: vht_oper_chwidth=1" 1
         echo "vht_oper_chwidth=1"$'\n' >> /hostapd.conf
         logger "Add to hostapd.conf: vht_oper_centr_freq_seg0_idx=$VHT_CENTER" 1
         echo "vht_oper_centr_freq_seg0_idx=$VHT_CENTER"$'\n' >> /hostapd.conf
         logger "802.11ac enabled: 80MHz channel, centre $VHT_CENTER." 1
     else
-        logger "Channel $CHANNEL is not part of an 80MHz block, so VHT stays at 40MHz. 165 is the only such channel." 1
+        logger "Channel $CHANNEL cannot form an 80MHz block; VHT stays at 40MHz." 1
     fi
 fi
 
