@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.2] - 2026-09-24
+
+### Fixed
+- Stop the Supervisor rejecting the add-on with "Missing required option 'ht_capab'". A key that is
+  present in `options` may not have a value of `null`, even when its schema is marked optional: the
+  Supervisor raises `Missing required option` from its single-value validator before the `?` marker is
+  consulted (`?` only covers a key that is entirely absent). `ht_capab`, `vht_capab` and `country_code`
+  now default to `""` with a `str?` schema, and an empty value means "use the default".
+
+### Changed
+- Validate `ht_capab`, `vht_capab` and `country_code` in `run.sh` instead of via `match()` schemas, since
+  the Supervisor cannot express an optional `match`, and fail with a clear message when they are malformed.
+
 ## [0.6.1] - 2026-09-24
 
 ### Fixed

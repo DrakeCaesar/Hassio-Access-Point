@@ -127,6 +127,20 @@ else
     fi
 fi
 
+# The Supervisor cannot express "optional match" schema types: an empty string has
+# to be the "use the default" sentinel because a value of null is rejected for any
+# key present in `options`, optional or not. Validate the flag lists here instead.
+FLAG_LIST_REGEX='^(\[[A-Z0-9][A-Z0-9_+-]*\])+$'
+if [ -n "$HT_CAPAB" ] && ! [[ "$HT_CAPAB" =~ $FLAG_LIST_REGEX ]] ; then
+    bashio::exit.nok "ht_capab must be a list of flags in square brackets, e.g. '[HT40][SHORT-GI-20]'. Got: $HT_CAPAB"
+fi
+if [ -n "$VHT_CAPAB" ] && ! [[ "$VHT_CAPAB" =~ $FLAG_LIST_REGEX ]] ; then
+    bashio::exit.nok "vht_capab must be a list of flags in square brackets, e.g. '[SHORT-GI-80]'. Got: $VHT_CAPAB"
+fi
+if [ -n "$COUNTRY_CODE" ] && ! [[ "$COUNTRY_CODE" =~ ^[A-Z]{2}$ ]] ; then
+    bashio::exit.nok "country_code must be a two-letter uppercase country code, e.g. 'GB'. Got: $COUNTRY_CODE"
+fi
+
 # Fall back to a band-appropriate set of HT capabilities
 if [ -z "$HT_CAPAB" ] ; then
     HT_CAPAB=$DEFAULT_HT_CAPAB

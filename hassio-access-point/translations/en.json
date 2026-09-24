@@ -62,7 +62,7 @@
 		},
 		"ht_capab": {
 			"name": "HT Capabilities",
-			"description": "HT capabilities (list of flags). Leave blank to use the default for the selected band. Only set this if you know what you're doing."
+			"description": "HT capabilities (list of flags), e.g. `[HT40][SHORT-GI-20]`. Leave blank to use the default for the selected band. Only set this if you know what you're doing."
 		},
 		"ieee80211ac": {
 			"name": "Enable 802.11ac",
@@ -74,7 +74,7 @@
 		},
 		"country_code": {
 			"name": "Country Code",
-			"description": "Two-letter country code (e.g. `GB`) used to set the WiFi regulatory domain. Required for most 5GHz channels to be usable."
+			"description": "Two-letter uppercase country code (e.g. `GB`) used to set the WiFi regulatory domain. Required for most 5GHz channels to be usable."
 		},
 		"hostapd_config_override": {
 			"name": "HOSTAPD Custom Configuration",

@@ -74,7 +74,7 @@
 		},
 		"country_code": {
 			"name": "Code pays",
-			"description": "Code pays à deux lettres (par ex. `FR`) utilisé pour définir le domaine réglementaire WiFi. Nécessaire pour que de nombreux canaux 5GHz soient utilisables."
+			"description": "Code pays à deux lettres en majuscules (par ex. `FR`) utilisé pour définir le domaine réglementaire WiFi. Nécessaire pour que de nombreux canaux 5GHz soient utilisables."
 		},
 		"hostapd_config_override": {
 			"name": "Configuration personnalisée de HOSTAPD",
