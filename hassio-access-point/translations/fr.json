@@ -57,12 +57,12 @@
 			"description": "Liste des addresses MAC NON autorisées à se connecter au réseau. Tout les autres appareils seront autorisés."
 		},
 		"debug": {
-			"name": "",
-			"description": ""
+			"name": "Journalisation de débogage",
+			"description": "0 = sortie basique, 1 = afficher les détails de l'addon, 2 = comme 1 plus hostapd en mode débogage."
 		},
 		"ht_capab": {
 			"name": "HT Capabilities",
-			"description": "Capacités HT (liste des drapeaux). Une valeur par défaut adaptée est choisie automatiquement selon la bande sélectionnée. Ne modifier que si vous savez ce que vous faîtes."
+			"description": "Capacités HT (liste des drapeaux). Laisser vide pour utiliser la valeur par défaut de la bande sélectionnée. Ne modifier que si vous savez ce que vous faîtes."
 		},
 		"ieee80211ac": {
 			"name": "Activer le 802.11ac",

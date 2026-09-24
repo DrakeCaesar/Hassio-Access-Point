@@ -21,6 +21,10 @@ Please add
 
 ## Config
 
+All of the options below are shown in the add-on's **Configuration** tab, so nothing is hidden behind a
+hand-edited options file. Options you can leave blank (`ht_capab`, `vht_capab`) fall back to a sensible
+default automatically.
+
 ### Options
 - **ssid** (**required**): The name of your access point
 - **wpa_passphrase** (**required**): The passkey for your access point
@@ -37,10 +41,10 @@ Please add
 - **allow_mac_addresses** (_optional_): List of MAC addresses to allow. Note: if using allow, blocks everything not in list
 - **deny_mac_addresses** (_optional_): List of MAC addresses to block. Note: if using deny, allows everything not in list
 - **debug** (_optional_): Set logging level. 0 = basic output, 1 = show addon detail, 2 = same as 1 plus run hostapd in debug mode
-- **ht_capab** (_optional_): Set WiFi adapter's HT capabilities. Defaults to `[HT40][SHORT-GI-20][DSSS_CCK-40]` on 2.4GHz and `[HT40+][SHORT-GI-20][SHORT-GI-40]` on 5GHz
+- **ht_capab** (_optional_): Set WiFi adapter's HT capabilities. Leave blank to use the default, which is `[HT40][SHORT-GI-20][DSSS_CCK-40]` on 2.4GHz and `[HT40+][SHORT-GI-20][SHORT-GI-40]` on 5GHz
 - **ieee80211ac** (_optional_): Enable 802.11ac (VHT) on the 5GHz band. Only enable if your WiFi card supports 802.11ac. Defaults to disabled
-- **vht_capab** (_optional_): Set WiFi adapter's VHT capabilities when 802.11ac is enabled, e.g. `[SHORT-GI-80][SHORT-GI-160]`
-- **country_code** (_optional_): Two-letter country code (e.g. `GB`) used to set the WiFi regulatory domain. Required for many 5GHz channels to be usable
+- **vht_capab** (_optional_): Set WiFi adapter's VHT capabilities when 802.11ac is enabled, e.g. `[SHORT-GI-20][SHORT-GI-40][SHORT-GI-80]`. Leave blank to omit
+- **country_code** (_optional_): Two-letter country code (e.g. `GB`) used to set the WiFi regulatory domain. Required for most 5GHz channels to be usable
 - **hostapd_config_override** (_optional_): List of hostapd config options to add to hostapd.conf (can be used to override existing options)
 - **client_internet_access** (_optional_): Provide internet access for clients. 1 = enable
 - **client_dns_override** (_optional_): Specify list of DNS servers for clients. Requires DHCP to be enabled. Note: Add-on will try to use DNS servers of the parent host by default.

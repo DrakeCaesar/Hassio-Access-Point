@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.1] - 2026-09-24
+
+### Fixed
+- Show every option in the add-on's Configuration tab. `ht_capab`, `vht_capab` and `country_code` were
+  present in the schema but missing from `options`, which made the Supervisor hide them.
+- Treat blank optional options as empty instead of the literal string `null`. `bashio::config` returns
+  `null` for options left blank, which would have written `country_code=null` and `ht_capab=null` into
+  `hostapd.conf` and stopped hostapd from starting.
+
+### Added
+- A name and description for the previously unlabelled `debug` option.
+
 ## [0.6.0] - 2026-09-24
 
 ### Added

@@ -18,6 +18,19 @@ logger(){
     fi
 }
 
+# Read an optional config value, as an empty string when unset.
+# bashio::config falls back to the literal string "null" for options left blank
+# (its default parameter is "null", and an empty default counts as unset), and
+# returns "false" for false booleans. Normalise both to an empty string.
+optional_config(){
+    local value
+    value=$(bashio::config "$1")
+    case "$value" in
+        null|false) echo "" ;;
+        *) echo "$value" ;;
+    esac
+}
+
 CONFIG_PATH=/data/options.json
 
 # Convert integer configs to boolean, to avoid a breaking old configs
@@ -48,9 +61,9 @@ ALLOW_MAC_ADDRESSES=$(bashio::config 'allow_mac_addresses' )
 DENY_MAC_ADDRESSES=$(bashio::config 'deny_mac_addresses' )
 DEBUG=$(bashio::config 'debug' )
 BAND=$(bashio::config 'band' '2.4')
-COUNTRY_CODE=$(bashio::config 'country_code' '')
-HT_CAPAB=$(bashio::config 'ht_capab' '')
-VHT_CAPAB=$(bashio::config 'vht_capab' '')
+COUNTRY_CODE=$(optional_config 'country_code')
+HT_CAPAB=$(optional_config 'ht_capab')
+VHT_CAPAB=$(optional_config 'vht_capab')
 HOSTAPD_CONFIG_OVERRIDE=$(bashio::config 'hostapd_config_override' )
 CLIENT_INTERNET_ACCESS=$(bashio::config.false 'client_internet_access'; echo $?)
 CLIENT_DNS_OVERRIDE=$(bashio::config 'client_dns_override' )
