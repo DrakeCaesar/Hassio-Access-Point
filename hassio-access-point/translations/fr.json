@@ -8,9 +8,13 @@
 			"name": "Mot de passe WPA2",
 			"description": "Le mot de passe pour votre réseau WiFi. Doit avoir au moins 8 caractères."
 		},
+		"band": {
+			"name": "Bande WiFi",
+			"description": "La bande sur laquelle héberger le point d'accès. '2.4' utilise la bande 2,4GHz, '5' utilise la bande 5GHz. Votre carte WiFi doit prendre en charge la bande choisie."
+		},
 		"channel": {
-			"name": "Numéro du canal 2,4GHz",
-			"description": "Le canal sur lequel diffuser. Si vous n'êtes pas sûr, les canaux 1, 6 ou 11 sont recommandés."
+			"name": "Numéro du canal",
+			"description": "Le canal sur lequel diffuser. En 2,4GHz, les canaux 1, 6 ou 11 sont recommandés. En 5GHz, utilisez par exemple 36, 40, 44, 48, 100, 149 ou 157."
 		},
 		"address": {
 			"name": "Adresse IP de l'hôte",
@@ -58,7 +62,19 @@
 		},
 		"ht_capab": {
 			"name": "HT Capabilities",
-			"description": "Capacités HT (liste des drapeaux)"
+			"description": "Capacités HT (liste des drapeaux). Une valeur par défaut adaptée est choisie automatiquement selon la bande sélectionnée. Ne modifier que si vous savez ce que vous faîtes."
+		},
+		"ieee80211ac": {
+			"name": "Activer le 802.11ac",
+			"description": "Activer le 802.11ac (VHT) sur la bande 5GHz. À activer uniquement si votre carte WiFi prend en charge le 802.11ac, sinon hostapd ne démarrera pas."
+		},
+		"vht_capab": {
+			"name": "Capacités VHT",
+			"description": "Capacités VHT (liste des drapeaux), par ex. `[SHORT-GI-20][SHORT-GI-40][SHORT-GI-80]`. Nécessite 'Activer le 802.11ac'. Ne modifier que si vous savez ce que vous faîtes."
+		},
+		"country_code": {
+			"name": "Code pays",
+			"description": "Code pays à deux lettres (par ex. `FR`) utilisé pour définir le domaine réglementaire WiFi. Nécessaire pour que de nombreux canaux 5GHz soient utilisables."
 		},
 		"hostapd_config_override": {
 			"name": "Configuration personnalisée de HOSTAPD",

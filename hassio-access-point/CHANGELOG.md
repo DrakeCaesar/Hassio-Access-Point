@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.0] - 2026-09-24
+
+### Added
+- Optional 5GHz (802.11a/n) access point support via a new `band` option (`2.4` or `5`).
+  `hw_mode` and a band-appropriate `ht_capab` default are now generated automatically, and
+  the `channel` option is validated against the selected band.
+- Optional `ieee80211ac` and `vht_capab` options to enable 802.11ac (VHT) on the 5GHz band.
+- Optional `country_code` option, which appends `country_code`/`ieee80211d=1` so the WiFi
+  regulatory domain (needed for most 5GHz channels) is set correctly.
+
+### Fixed
+- Removed a stray literal `\n` that was appended to the `channel=` line of `hostapd.conf`.
+
+### Notes
+- Raspberry Pi 3B+ and later (including Pi 4 and Pi 5) have a dual-band built-in radio, so a 5GHz AP
+  works on the default `wlan0`. The radio must have a WLAN country configured for 5GHz channels to be
+  usable; the new `country_code` option covers this for hostapd. With `debug: 1` the add-on now logs the
+  current regulatory domain when hosting on 5GHz.
+
 ## [0.5.4] - 2025-11-03
 
 ### Added

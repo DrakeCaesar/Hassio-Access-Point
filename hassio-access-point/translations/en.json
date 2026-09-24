@@ -8,9 +8,13 @@
 			"name": "WPA2 Password",
 			"description": "The password for the WiFi network. Must be at least 8 characters long."
 		},
+		"band": {
+			"name": "WiFi Band",
+			"description": "Which band to host the access point on. '2.4' uses the 2.4GHz band, '5' uses the 5GHz band. The built-in radio on Raspberry Pi 3B+ and later is dual-band; earlier models are 2.4GHz-only."
+		},
 		"channel": {
-			"name": "2.4GHz Channel Number",
-			"description": "The channel to broadcast on. If unsure; either 1, 6 or 11 is recommended."
+			"name": "Channel Number",
+			"description": "The channel to broadcast on. For 2.4GHz, 1, 6 or 11 is recommended. For 5GHz use e.g. 36, 40, 44, 48, 100, 149 or 157."
 		},
 		"address": {
 			"name": "Host IP Address",
@@ -58,7 +62,19 @@
 		},
 		"ht_capab": {
 			"name": "HT Capabilities",
-			"description": "HT capabilities (list of flags)"
+			"description": "HT capabilities (list of flags). A sensible default is chosen automatically based on the selected band. Only set this if you know what you're doing."
+		},
+		"ieee80211ac": {
+			"name": "Enable 802.11ac",
+			"description": "Enable 802.11ac (VHT) on the 5GHz band. Only enable if your WiFi card supports 802.11ac, otherwise hostapd will fail to start. The built-in Raspberry Pi 3B+/4/5 radio supports 802.11ac."
+		},
+		"vht_capab": {
+			"name": "VHT Capabilities",
+			"description": "VHT capabilities (list of flags), e.g. `[SHORT-GI-20][SHORT-GI-40][SHORT-GI-80]`. Requires 'Enable 802.11ac'. Only set this if you know what you're doing."
+		},
+		"country_code": {
+			"name": "Country Code",
+			"description": "Two-letter country code (e.g. `GB`) used to set the WiFi regulatory domain. Required for many 5GHz channels to be usable."
 		},
 		"hostapd_config_override": {
 			"name": "HOSTAPD Custom Configuration",

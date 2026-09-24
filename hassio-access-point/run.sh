@@ -47,7 +47,10 @@ DNSMASQ_CONFIG_OVERRIDE=$(bashio::config 'dnsmasq_config_override' )
 ALLOW_MAC_ADDRESSES=$(bashio::config 'allow_mac_addresses' )
 DENY_MAC_ADDRESSES=$(bashio::config 'deny_mac_addresses' )
 DEBUG=$(bashio::config 'debug' )
-HT_CAPAB=$(bashio::config 'ht_capab' '[HT40][SHORT-GI-20][DSSS_CCK-40]')
+BAND=$(bashio::config 'band' '2.4')
+COUNTRY_CODE=$(bashio::config 'country_code' '')
+HT_CAPAB=$(bashio::config 'ht_capab' '')
+VHT_CAPAB=$(bashio::config 'vht_capab' '')
 HOSTAPD_CONFIG_OVERRIDE=$(bashio::config 'hostapd_config_override' )
 CLIENT_INTERNET_ACCESS=$(bashio::config.false 'client_internet_access'; echo $?)
 CLIENT_DNS_OVERRIDE=$(bashio::config 'client_dns_override' )
@@ -93,18 +96,73 @@ if [ ${#WPA_PASSPHRASE} -lt 8 ] ; then
     bashio::exit.nok "The WPA password must be at least 8 characters long!"
 fi
 
+# Determine the hardware mode from the selected band and validate the channel.
+# 2.4GHz -> hw_mode=g, 5GHz -> hw_mode=a.
+if [ "$BAND" == "5" ] ; then
+    HW_MODE=a
+    # HT40+ is used so the 40MHz secondary channel sits above the primary one.
+    # [DSSS_CCK-40] is a 2.4GHz-only capability and must NOT be used on 5GHz.
+    DEFAULT_HT_CAPAB="[HT40+][SHORT-GI-20][SHORT-GI-40]"
+    if [ "$CHANNEL" -lt 36 ] || [ "$CHANNEL" -gt 177 ] ; then
+        bashio::exit.nok "Channel $CHANNEL is not valid for the 5GHz band. Use a 5GHz channel such as 36, 40, 44, 48, 100, 149 or 157."
+    fi
+else
+    HW_MODE=g
+    DEFAULT_HT_CAPAB="[HT40][SHORT-GI-20][DSSS_CCK-40]"
+    if [ "$CHANNEL" -gt 13 ] ; then
+        bashio::exit.nok "Channel $CHANNEL is not valid for the 2.4GHz band. Use a channel between 1 and 13."
+    fi
+fi
+
+# Fall back to a band-appropriate set of HT capabilities
+if [ -z "$HT_CAPAB" ] ; then
+    HT_CAPAB=$DEFAULT_HT_CAPAB
+fi
+
 # Setup hostapd.conf
 logger "# Setup hostapd:" 1
 logger "Add to hostapd.conf: ssid=$SSID" 1
 echo "ssid=$SSID"$'\n' >> /hostapd.conf
 logger "Add to hostapd.conf: wpa_passphrase=********" 1
 echo "wpa_passphrase=$WPA_PASSPHRASE"$'\n' >> /hostapd.conf
+logger "Add to hostapd.conf: hw_mode=$HW_MODE (band $BAND GHz)" 1
+echo "hw_mode=$HW_MODE"$'\n' >> /hostapd.conf
 logger "Add to hostapd.conf: channel=$CHANNEL" 1
-echo "channel=$CHANNEL"'\n' >> /hostapd.conf
+echo "channel=$CHANNEL"$'\n' >> /hostapd.conf
 logger "Add to hostapd.conf: ignore_broadcast_ssid=$HIDE_SSID" 1
 echo "ignore_broadcast_ssid=$HIDE_SSID"$'\n' >> /hostapd.conf
+logger "Add to hostapd.conf: ieee80211n=1" 1
+echo "ieee80211n=1"$'\n' >> /hostapd.conf
 logger "Add to hostapd.conf: ht_capab=$HT_CAPAB" 1
 echo "ht_capab=$HT_CAPAB"$'\n' >> /hostapd.conf
+
+# 802.11ac (VHT) is optional and only meaningful on the 5GHz band. It must not
+# be enabled for adapters that don't support it, or hostapd will refuse to start.
+if [ "$BAND" == "5" ] && $(bashio::config.true 'ieee80211ac') ; then
+    logger "Add to hostapd.conf: ieee80211ac=1" 1
+    echo "ieee80211ac=1"$'\n' >> /hostapd.conf
+    if [ -n "$VHT_CAPAB" ] ; then
+        logger "Add to hostapd.conf: vht_capab=$VHT_CAPAB" 1
+        echo "vht_capab=$VHT_CAPAB"$'\n' >> /hostapd.conf
+    fi
+fi
+
+# A country code enables the regulatory domain, which is required for many
+# 5GHz channels (especially the DFS ones) to be usable.
+if [ -n "$COUNTRY_CODE" ] ; then
+    logger "Add to hostapd.conf: country_code=$COUNTRY_CODE" 1
+    echo "country_code=$COUNTRY_CODE"$'\n' >> /hostapd.conf
+    logger "Add to hostapd.conf: ieee80211d=1" 1
+    echo "ieee80211d=1"$'\n' >> /hostapd.conf
+fi
+
+# Helpful when a 5GHz AP refuses to start: dual-band radios (e.g. the built-in
+# Raspberry Pi 3B+/4/5 wireless) will not come up on 5GHz until a regulatory
+# domain is known.
+if [ "$BAND" == "5" ] && [ $DEBUG -ge 1 ] ; then
+    logger "# 5GHz band selected. Current regulatory domain:" 1
+    iw reg get 2>/dev/null || true
+fi
 
 ### MAC address filtering
 ## Allow is more restrictive, so we prioritise that and set
