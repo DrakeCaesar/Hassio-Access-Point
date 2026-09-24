@@ -388,6 +388,26 @@ HOSTAPD_PID=$!
 wait "$HOSTAPD_PID"
 HOSTAPD_STATUS=$?
 
+# 40MHz makes hostapd scan for neighbouring BSSes first, and the built-in radio
+# often refuses that scan, which hostapd treats as fatal. Rather than leaving a
+# dead AP, retry once at 20MHz.
+if [ $HOSTAPD_STATUS -ne 0 ] && [ "$HT40_ENABLED" == "true" ] ; then
+    logger "hostapd exited with status $HOSTAPD_STATUS while 40MHz was enabled. Retrying with ht_capab=[SHORT-GI-20] and 802.11ac off." 0
+    sed -i 's/^ht_capab=.*/ht_capab=[SHORT-GI-20]/; /^vht_oper_chwidth=/d; /^vht_oper_centr_freq_seg0_idx=/d; /^ieee80211ac=/d' /hostapd.conf
+    if [ $DEBUG -ge 1 ] ; then
+        echo "# Retrying with /hostapd.conf:"
+        sed 's/^wpa_passphrase=.*/wpa_passphrase=********/' /hostapd.conf
+    fi
+    if [ $DEBUG -gt 1 ]; then
+        hostapd -d /hostapd.conf &
+    else
+        hostapd /hostapd.conf &
+    fi
+    HOSTAPD_PID=$!
+    wait "$HOSTAPD_PID"
+    HOSTAPD_STATUS=$?
+fi
+
 if [ $HOSTAPD_STATUS -ne 0 ] ; then
     logger "hostapd exited with status $HOSTAPD_STATUS. Check the messages above: the usual causes are a DFS channel without radar support, a missing country_code, or an ht_capab/vht_capab flag the adapter does not support." 0
 fi
