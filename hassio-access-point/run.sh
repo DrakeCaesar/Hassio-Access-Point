@@ -18,10 +18,6 @@ logger(){
     fi
 }
 
-# Read an optional config value, as an empty string when unset.
-# bashio::config falls back to the literal string "null" for options left blank
-# (its default parameter is "null", and an empty default counts as unset), and
-# returns "false" for false booleans. Normalise both to an empty string.
 optional_config(){
     local value
     value=$(bashio::config "$1")
@@ -110,24 +106,18 @@ if [ ${#WPA_PASSPHRASE} -lt 8 ] ; then
     bashio::exit.nok "The WPA password must be at least 8 characters long!"
 fi
 
-# Determine the hardware mode from the selected band and validate the channel.
-# 2.4GHz -> hw_mode=g, 5GHz -> hw_mode=a.
 if [ "$BAND" == "5" ] ; then
     HW_MODE=a
-    if [ "$CHANNEL" -lt 36 ] || [ "$CHANNEL" -gt 177 ] ; then
-        bashio::exit.nok "Channel $CHANNEL is not valid for the 5GHz band. Use 36, 40, 44 or 48 (non-DFS), or 149-165 where your region allows it."
+    FIVE_GHZ_CHANNELS="36 40 44 48 52 56 60 64 100 104 108 112 116 120 124 128 132 136 140 144 149 153 157 161 165"
+    if ! [[ " $FIVE_GHZ_CHANNELS " == *" $CHANNEL "* ]] ; then
+        bashio::exit.nok "Channel $CHANNEL is not a 5GHz WiFi channel. Use 36, 40, 44 or 48 (non-DFS), or 149, 153, 157, 161 or 165 where your region allows it."
     fi
-    # HT40+ puts the 40MHz secondary channel above the primary, so it is not usable
-    # on the top channel of a block (48 -> 52 and 165 -> 169 are out of range).
     if [ "$CHANNEL" -eq 48 ] || [ "$CHANNEL" -eq 165 ] ; then
         HT40_MODE=HT40-
     else
         HT40_MODE=HT40+
     fi
-    # [DSSS_CCK-40] is a 2.4GHz-only capability and must NOT be used on 5GHz.
     DEFAULT_HT_CAPAB="[$HT40_MODE][SHORT-GI-20][SHORT-GI-40]"
-    # Channels 52-144 are DFS: they must listen for radar (CAC) before they are
-    # allowed to transmit, which takes 60s to 10 minutes and needs hardware support.
     if [ "$CHANNEL" -ge 52 ] && [ "$CHANNEL" -le 144 ] ; then
         IS_DFS=true
     else
@@ -137,25 +127,20 @@ else
     HW_MODE=g
     IS_DFS=false
     DEFAULT_HT_CAPAB="[HT40][SHORT-GI-20][DSSS_CCK-40]"
-    if [ "$CHANNEL" -gt 13 ] ; then
+    if [ "$CHANNEL" -lt 1 ] || [ "$CHANNEL" -gt 13 ] ; then
         bashio::exit.nok "Channel $CHANNEL is not valid for the 2.4GHz band. Use a channel between 1 and 13."
     fi
 fi
 
-# DFS channels are opt-in: without ieee80211h hostapd refuses them as "NO-IR RADAR",
-# which is what the cryptic "Could not select hw_mode and channel. (-3)" message means.
 if [ "$IS_DFS" == "true" ] ; then
     if [ "$DFS" != "true" ] ; then
-        bashio::exit.nok "Channel $CHANNEL is a DFS channel (52-144). It must listen for radar before it may transmit, and the built-in Raspberry Pi radio cannot do that. Use a non-DFS channel such as 36, 40, 44 or 48 (or 149-165 where your region allows it), or set 'dfs' to true if your adapter supports radar detection."
+        bashio::exit.nok "Channel $CHANNEL is a DFS channel (52-144). It must listen for radar before it may transmit, and the built-in Raspberry Pi radio cannot do that. Use a non-DFS channel: 36, 40, 44, 48, or 149, 153, 157, 161, 165 where your region allows it, or set 'dfs' to true if your adapter supports radar detection."
     fi
     if [ -z "$COUNTRY_CODE" ] ; then
         bashio::exit.nok "DFS channel $CHANNEL needs a regulatory domain. Set 'country_code' to your two-letter country code."
     fi
 fi
 
-# The Supervisor cannot express "optional match" schema types: an empty string has
-# to be the "use the default" sentinel because a value of null is rejected for any
-# key present in `options`, optional or not. Validate the flag lists here instead.
 FLAG_LIST_REGEX='^(\[[A-Z0-9][A-Z0-9_+-]*\])+$'
 if [ -n "$HT_CAPAB" ] && ! [[ "$HT_CAPAB" =~ $FLAG_LIST_REGEX ]] ; then
     bashio::exit.nok "ht_capab must be a list of flags in square brackets, e.g. '[HT40][SHORT-GI-20]'. Got: $HT_CAPAB"
@@ -167,7 +152,6 @@ if [ -n "$COUNTRY_CODE" ] && ! [[ "$COUNTRY_CODE" =~ ^[A-Z]{2}$ ]] ; then
     bashio::exit.nok "country_code must be a two-letter uppercase country code, e.g. 'GB'. Got: $COUNTRY_CODE"
 fi
 
-# Fall back to a band-appropriate set of HT capabilities
 if [ -z "$HT_CAPAB" ] ; then
     HT_CAPAB=$DEFAULT_HT_CAPAB
 fi
@@ -189,8 +173,6 @@ echo "ieee80211n=1"$'\n' >> /hostapd.conf
 logger "Add to hostapd.conf: ht_capab=$HT_CAPAB" 1
 echo "ht_capab=$HT_CAPAB"$'\n' >> /hostapd.conf
 
-# 802.11ac (VHT) is optional and only meaningful on the 5GHz band. It must not
-# be enabled for adapters that don't support it, or hostapd will refuse to start.
 if [ "$BAND" == "5" ] && $(bashio::config.true 'ieee80211ac') ; then
     logger "Add to hostapd.conf: ieee80211ac=1" 1
     echo "ieee80211ac=1"$'\n' >> /hostapd.conf
@@ -198,10 +180,26 @@ if [ "$BAND" == "5" ] && $(bashio::config.true 'ieee80211ac') ; then
         logger "Add to hostapd.conf: vht_capab=$VHT_CAPAB" 1
         echo "vht_capab=$VHT_CAPAB"$'\n' >> /hostapd.conf
     fi
+    case "$CHANNEL" in
+        36|40|44|48)      VHT_CENTER=42 ;;
+        52|56|60|64)      VHT_CENTER=58 ;;
+        100|104|108|112)  VHT_CENTER=106 ;;
+        116|120|124|128)  VHT_CENTER=122 ;;
+        132|136|140|144)  VHT_CENTER=138 ;;
+        149|153|157|161)  VHT_CENTER=155 ;;
+        *)               VHT_CENTER="" ;;
+    esac
+    if [ -n "$VHT_CENTER" ] ; then
+        logger "Add to hostapd.conf: vht_oper_chwidth=1" 1
+        echo "vht_oper_chwidth=1"$'\n' >> /hostapd.conf
+        logger "Add to hostapd.conf: vht_oper_centr_freq_seg0_idx=$VHT_CENTER" 1
+        echo "vht_oper_centr_freq_seg0_idx=$VHT_CENTER"$'\n' >> /hostapd.conf
+        logger "802.11ac enabled: 80MHz channel, centre $VHT_CENTER." 1
+    else
+        logger "Channel $CHANNEL is not part of an 80MHz block, so VHT stays at 40MHz. 165 is the only such channel." 1
+    fi
 fi
 
-# A country code enables the regulatory domain, which is required for many
-# 5GHz channels (especially the DFS ones) to be usable.
 if [ -n "$COUNTRY_CODE" ] ; then
     logger "Add to hostapd.conf: country_code=$COUNTRY_CODE" 1
     echo "country_code=$COUNTRY_CODE"$'\n' >> /hostapd.conf
@@ -209,20 +207,20 @@ if [ -n "$COUNTRY_CODE" ] ; then
     echo "ieee80211d=1"$'\n' >> /hostapd.conf
 fi
 
-# Enable DFS radar detection (CAC). Only meaningful together with a DFS channel,
-# and hostapd refuses ieee80211h without a country_code.
 if [ "$IS_DFS" == "true" ] ; then
     logger "Add to hostapd.conf: ieee80211h=1" 1
     echo "ieee80211h=1"$'\n' >> /hostapd.conf
     logger "DFS channel $CHANNEL selected. hostapd will listen for radar for 60s or more before the AP becomes available." 0
 fi
 
-# Helpful when a 5GHz AP refuses to start: dual-band radios (e.g. the built-in
-# Raspberry Pi 3B+/4/5 wireless) will not come up on 5GHz until a regulatory
-# domain is known.
 if [ "$BAND" == "5" ] && [ $DEBUG -ge 1 ] ; then
     logger "# 5GHz band selected. Current regulatory domain:" 1
     iw reg get 2>/dev/null || true
+fi
+
+if [ $DEBUG -ge 1 ] ; then
+    logger "# Channels reported by the driver ('no IR' = cannot host an AP there):" 1
+    iw phy 2>/dev/null | grep -E '^[[:space:]]*\*[[:space:]]*[0-9]+ MHz' | sed 's/^[[:space:]]*//' || true
 fi
 
 ### MAC address filtering
@@ -367,8 +365,6 @@ if $(bashio::config.true "dhcp"); then
     fi
 fi
 
-# Dump the configuration we ended up with. Most "client cannot connect" reports are
-# far easier to diagnose from this than from the option values.
 if [ $DEBUG -ge 1 ] ; then
     echo "# Effective /hostapd.conf:"
     sed 's/^wpa_passphrase=.*/wpa_passphrase=********/' /hostapd.conf
