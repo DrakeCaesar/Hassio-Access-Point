@@ -17,7 +17,7 @@ RUN apk update && \
         iptables && \
     rm -rf /var/cache/apk/*
 
-COPY hostapd.conf /
+COPY hostapd.conf /hostapd.conf.template
 COPY dnsmasq.conf /
 
 COPY run.sh /

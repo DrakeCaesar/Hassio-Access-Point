@@ -1,6 +1,6 @@
 ---
 name: Hass.io Access Point
-version: 0.6.8
+version: 0.6.9
 slug: hassio-access-point
 description: Create a WiFi access point to directly connect devices to Home Assistant
 arch: [armhf, armv7, aarch64, amd64, i386]
@@ -16,12 +16,21 @@ init: false
 options:
   ssid:
   wpa_passphrase:
+  interface: wlan0
   band: "2.4"
-  channel: 6
+  interface_2: "wlp1s0u1u4"
+  band_2: "off"
+  channel_2g: 6
+  ht_capab_2g: ""
+  channel_5g: 44
+  ht_capab_5g: ""
+  ieee80211ac_5g: false
+  vht_capab_5g: ""
+  dfs_5g: false
+  country_code: ""
   address: 192.168.99.1
   netmask: 255.255.255.0
   broadcast: 192.168.99.255
-  interface: wlan0
   hide_ssid: false
   dhcp: false
   dhcp_start_addr: 192.168.99.10
@@ -29,11 +38,6 @@ options:
   allow_mac_addresses: []
   deny_mac_addresses: []
   debug: 0
-  ht_capab: ""
-  ieee80211ac: false
-  vht_capab: ""
-  country_code: ""
-  dfs: false
   hostapd_config_override: []
   client_internet_access: false
   client_dns_override: []
@@ -42,7 +46,15 @@ schema:
   ssid: match(^.{2,32}$)
   wpa_passphrase: password
   band: list(2.4|5)
-  channel: int(1,196)
+  interface_2: str
+  band_2: list(2.4|5|off)
+  channel_2g: int(1,13)
+  ht_capab_2g: list(|[SHORT-GI-20]|[SHORT-GI-20][DSSS_CCK-40]|[HT40+][SHORT-GI-20][SHORT-GI-40]|[HT40-][SHORT-GI-20][SHORT-GI-40]|[HT40+][SHORT-GI-20][DSSS_CCK-40]|[HT40-][SHORT-GI-20][DSSS_CCK-40])
+  channel_5g: int(1,196)
+  ht_capab_5g: list(|[SHORT-GI-20]|[HT40+][SHORT-GI-20][SHORT-GI-40]|[HT40-][SHORT-GI-20][SHORT-GI-40])
+  ieee80211ac_5g: bool
+  vht_capab_5g: list(|[SHORT-GI-80]|[SHORT-GI-80][HTC-VHT]|[SHORT-GI-80][RXLDPC]|[SHORT-GI-80][RXLDPC][MAX-MPDU-11454]|[MAX-MPDU-11454])
+  dfs_5g: bool
   address: match(^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)
   netmask: match(^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)
   broadcast: match(^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$)
@@ -56,11 +68,7 @@ schema:
   deny_mac_addresses:
     - match(^([0-9a-fA-F]{2}:){4}[0-9a-fA-F]{2})?
   debug: int(0,2)
-  ht_capab: list(|[SHORT-GI-20]|[HT40+][SHORT-GI-20][SHORT-GI-40]|[HT40-][SHORT-GI-20][SHORT-GI-40]|[HT40+][SHORT-GI-20][DSSS_CCK-40]|[HT40-][SHORT-GI-20][DSSS_CCK-40])
-  ieee80211ac: bool
-  vht_capab: list(|[SHORT-GI-80]|[SHORT-GI-80][HTC-VHT]|[SHORT-GI-80][RXLDPC]|[SHORT-GI-80][RXLDPC][MAX-MPDU-11454]|[MAX-MPDU-11454])
   country_code: str?
-  dfs: bool
   hostapd_config_override:
     - str?
   client_internet_access: bool

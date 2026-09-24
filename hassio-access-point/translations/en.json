@@ -9,8 +9,35 @@
 		"band": {
 			"name": "WiFi Band"
 		},
-		"channel": {
-			"name": "Channel Number"
+		"interface_2": {
+			"name": "Second Network Interface"
+		},
+		"band_2": {
+			"name": "Second WiFi Band"
+		},
+		"channel_2g": {
+			"name": "2.4GHz Channel"
+		},
+		"ht_capab_2g": {
+			"name": "2.4GHz HT Capabilities"
+		},
+		"channel_5g": {
+			"name": "5GHz Channel"
+		},
+		"ht_capab_5g": {
+			"name": "5GHz HT Capabilities"
+		},
+		"ieee80211ac_5g": {
+			"name": "Enable 802.11ac"
+		},
+		"vht_capab_5g": {
+			"name": "5GHz VHT Capabilities"
+		},
+		"dfs_5g": {
+			"name": "Allow DFS Channels"
+		},
+		"country_code": {
+			"name": "Country Code"
 		},
 		"address": {
 			"name": "Host IP Address"
@@ -44,21 +71,6 @@
 		},
 		"debug": {
 			"name": "Debug Logging"
-		},
-		"ht_capab": {
-			"name": "HT Capabilities"
-		},
-		"ieee80211ac": {
-			"name": "Enable 802.11ac"
-		},
-		"vht_capab": {
-			"name": "VHT Capabilities"
-		},
-		"country_code": {
-			"name": "Country Code"
-		},
-		"dfs": {
-			"name": "Allow DFS Channels"
 		},
 		"hostapd_config_override": {
 			"name": "HOSTAPD Custom Configuration"
