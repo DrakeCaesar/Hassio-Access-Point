@@ -41,47 +41,39 @@ optional_config(){
 
 CONFIG_PATH=/data/options.json
 
-# Convert integer configs to boolean, to avoid a breaking old configs
-declare -r bool_configs=( hide_ssid client_internet_access dhcp )
-for i in $bool_configs ; do
-    if bashio::config.true $i || bashio::config.false $i ; then
-        continue
-    elif [ $config_value -eq 0 ] ; then
-        bashio::addon.option $config_value false
-    else
-        bashio::addon.option $config_value true
-    fi
-done
+INTERFACE_24=$(optional_config 'general.interface_2_4ghz')
+INTERFACE_5=$(optional_config 'general.interface_5ghz')
+COUNTRY_CODE=$(optional_config 'general.country_code')
+ADDRESS=$(bashio::config 'general.address')
+NETMASK=$(bashio::config 'general.netmask')
+BROADCAST=$(bashio::config 'general.broadcast')
+DHCP=$(bashio::config.false 'general.dhcp'; echo $?)
+DHCP_START_ADDR=$(bashio::config 'general.dhcp_start_addr' )
+DHCP_END_ADDR=$(bashio::config 'general.dhcp_end_addr' )
+ALLOW_MAC_ADDRESSES=$(bashio::config 'general.allow_mac_addresses' )
+DENY_MAC_ADDRESSES=$(bashio::config 'general.deny_mac_addresses' )
+CLIENT_INTERNET_ACCESS=$(bashio::config.false 'general.client_internet_access'; echo $?)
+CLIENT_DNS_OVERRIDE=$(bashio::config 'general.client_dns_override' )
+DEBUG=$(bashio::config 'general.debug' )
+HOSTAPD_CONFIG_OVERRIDE=$(bashio::config 'general.hostapd_config_override' )
+DNSMASQ_CONFIG_OVERRIDE=$(bashio::config 'general.dnsmasq_config_override' )
 
-SSID=$(bashio::config "ssid")
-WPA_PASSPHRASE=$(bashio::config "wpa_passphrase")
-ADDRESS=$(bashio::config "address")
-NETMASK=$(bashio::config "netmask")
-BROADCAST=$(bashio::config "broadcast")
-INTERFACE=$(bashio::config "interface")
-HIDE_SSID=$(bashio::config.false "hide_ssid"; echo $?)
-DHCP=$(bashio::config.false "dhcp"; echo $?)
-DHCP_START_ADDR=$(bashio::config "dhcp_start_addr" )
-DHCP_END_ADDR=$(bashio::config "dhcp_end_addr" )
-DNSMASQ_CONFIG_OVERRIDE=$(bashio::config 'dnsmasq_config_override' )
-ALLOW_MAC_ADDRESSES=$(bashio::config 'allow_mac_addresses' )
-DENY_MAC_ADDRESSES=$(bashio::config 'deny_mac_addresses' )
-DEBUG=$(bashio::config 'debug' )
-BAND=$(bashio::config 'band' '2.4')
-INTERFACE_2=$(optional_config 'interface_2')
-BAND_2=$(bashio::config 'band_2' 'off')
-CHANNEL_2G=$(bashio::config 'channel_2g' 6)
-HT_CAPAB_2G=$(optional_config 'ht_capab_2g')
-CHANNEL_5G=$(bashio::config 'channel_5g' 44)
-HT_CAPAB_5G=$(optional_config 'ht_capab_5g')
-VHT_CAPAB_5G=$(optional_config 'vht_capab_5g')
-IEEE80211AC_5G=$(bashio::config 'ieee80211ac_5g' 'false')
-DFS_5G=$(bashio::config 'dfs_5g' 'false')
-COUNTRY_CODE=$(optional_config 'country_code')
-HOSTAPD_CONFIG_OVERRIDE=$(bashio::config 'hostapd_config_override' )
-CLIENT_INTERNET_ACCESS=$(bashio::config.false 'client_internet_access'; echo $?)
-CLIENT_DNS_OVERRIDE=$(bashio::config 'client_dns_override' )
-DNSMASQ_CONFIG_OVERRIDE=$(bashio::config 'dnsmasq_config_override' )
+# Per band settings. A band only runs when its interface is set, so an unused
+# band does not need an SSID or a password.
+SSID_24=$(bashio::config 'band_2_4ghz.ssid')
+WPA_PASSPHRASE_24=$(bashio::config 'band_2_4ghz.wpa_passphrase')
+HIDE_SSID_24=$(bashio::config.false 'band_2_4ghz.hide_ssid'; echo $?)
+CHANNEL_24=$(bashio::config 'band_2_4ghz.channel' 6)
+HT_CAPAB_24=$(optional_config 'band_2_4ghz.ht_capab')
+
+SSID_5=$(bashio::config 'band_5ghz.ssid')
+WPA_PASSPHRASE_5=$(bashio::config 'band_5ghz.wpa_passphrase')
+HIDE_SSID_5=$(bashio::config.false 'band_5ghz.hide_ssid'; echo $?)
+CHANNEL_5=$(bashio::config 'band_5ghz.channel' 44)
+HT_CAPAB_5=$(optional_config 'band_5ghz.ht_capab')
+IEEE80211AC_5=$(bashio::config 'band_5ghz.ieee80211ac' 'true')
+VHT_CAPAB_5=$(optional_config 'band_5ghz.vht_capab')
+DFS_5=$(bashio::config 'band_5ghz.dfs' 'false')
 
 # Get the Default Route interface
 DEFAULT_ROUTE_INTERFACE=$(ip route show default | awk '/^default/ { print $5 }')
@@ -96,42 +88,49 @@ DETECTED_WIRELESS=${DETECTED_WIRELESS# }
 
 echo "Starting Hass.io Access Point Addon"
 
-# Work out which radios run. Radio 2 joins radio 1 on a bridge, so both bands
-# end up on one network with one SSID and one DHCP range.
-MANAGED_INTERFACES="$INTERFACE"
-if [ "$BAND_2" == "off" ] ; then
-    if [ -n "$INTERFACE_2" ] ; then
-        logger "interface_2 is '$INTERFACE_2' but band_2 is 'off', so only $INTERFACE runs." 0
+# A band runs when its interface is set, and each band gets its own radio. With
+# both bands active the two radios share one network through a bridge.
+MANAGED_INTERFACES=""
+RADIO_IFACES=()
+RADIO_BANDS=()
+if [ -n "$INTERFACE_24" ] ; then
+    MANAGED_INTERFACES="$INTERFACE_24"
+    RADIO_IFACES+=("$INTERFACE_24")
+    RADIO_BANDS+=("2.4")
+fi
+if [ -n "$INTERFACE_5" ] ; then
+    if [ "$INTERFACE_5" == "$INTERFACE_24" ] ; then
+        bashio::exit.nok "interface_2_4ghz and interface_5ghz are both '$INTERFACE_5'. Each band needs its own radio."
     fi
-else
-    if [ -z "$INTERFACE_2" ] ; then
-        bashio::exit.nok "band_2 is '$BAND_2', so the second radio is enabled, but interface_2 is empty. Set interface_2 to the second wireless interface, e.g. 'wlan1'."
-    fi
-    if [ "$INTERFACE_2" == "$INTERFACE" ] ; then
-        bashio::exit.nok "interface and interface_2 are both '$INTERFACE'. Give interface_2 the second wireless interface, e.g. 'wlan1'."
-    fi
-    if [ ! -e "/sys/class/net/$INTERFACE_2/wireless" ] && [ ! -e "/sys/class/net/$INTERFACE_2/phy80211" ] ; then
-        bashio::exit.nok "interface_2 is set to '$INTERFACE_2', which is not a wireless interface. Wireless interfaces on this host: ${DETECTED_WIRELESS:-none}."
-    fi
-    if [ "$BAND" == "$BAND_2" ] ; then
-        bashio::exit.nok "band and band_2 are both '$BAND'. There is only one channel setting per band, so two radios on the same band would have to share a channel. Put the second radio on the other band."
-    fi
-    MANAGED_INTERFACES="$INTERFACE $INTERFACE_2"
-    BRIDGE_ENABLED=true
+    MANAGED_INTERFACES="$MANAGED_INTERFACES $INTERFACE_5"
+    RADIO_IFACES+=("$INTERFACE_5")
+    RADIO_BANDS+=("5")
+fi
+MANAGED_INTERFACES=${MANAGED_INTERFACES# }
+
+if [ ${#RADIO_IFACES[@]} -eq 0 ] ; then
+    bashio::exit.nok "Neither interface_2_4ghz nor interface_5ghz is set, so there is no radio to run an access point on. Wireless interfaces on this host: ${DETECTED_WIRELESS:-none}."
 fi
 
-if [ "$BRIDGE_ENABLED" == "true" ] ; then
+for iface in $MANAGED_INTERFACES ; do
+    if [ ! -e "/sys/class/net/$iface/wireless" ] && [ ! -e "/sys/class/net/$iface/phy80211" ] ; then
+        bashio::exit.nok "'$iface' is not a wireless interface. Wireless interfaces on this host: ${DETECTED_WIRELESS:-none}."
+    fi
+done
+
+if [ ${#RADIO_IFACES[@]} -gt 1 ] ; then
+    BRIDGE_ENABLED=true
     TARGET_INTERFACE=$BRIDGE_NAME
 else
-    TARGET_INTERFACE=$INTERFACE
+    TARGET_INTERFACE=$MANAGED_INTERFACES
 fi
 
-# Printed at debug 0 on purpose: this is what you need in order to fill in interface_2
+# Printed at debug 0 on purpose: this is what you need to fill in the interfaces
 logger "Wireless interfaces found: ${DETECTED_WIRELESS:-none}" 0
 if [ "$BRIDGE_ENABLED" == "true" ] ; then
-    logger "Two radios: $INTERFACE ($BAND GHz) + $INTERFACE_2 ($BAND_2 GHz), bridged as $BRIDGE_NAME" 0
+    logger "Both bands: 2.4GHz on $INTERFACE_24, 5GHz on $INTERFACE_5, bridged as $BRIDGE_NAME" 0
 else
-    logger "One radio: $INTERFACE ($BAND GHz). Set interface_2 and band_2 to run the other band on a second radio at the same time." 0
+    logger "One band on $TARGET_INTERFACE. Set the other interface in General to run both at once." 0
 fi
 
 # Setup interface
@@ -168,24 +167,42 @@ ip link set $TARGET_INTERFACE up
 trap 'term_handler' SIGTERM
 
 # Enforces required env variables
-required_vars=(ssid wpa_passphrase address netmask broadcast)
+required_vars=(general.address general.netmask general.broadcast)
 for required_var in "${required_vars[@]}"; do
     bashio::config.require $required_var "An AP cannot be created without this information"
 done
 
-if [ ${#WPA_PASSPHRASE} -lt 8 ] ; then
-    bashio::exit.nok "The WPA password must be at least 8 characters long!"
-fi
+# Credentials are per band, and only needed for the bands that actually run
+validate_band_credentials(){
+    local band=$1
+    local ssid=$2
+    local passphrase=$3
+
+    if ! [[ "$ssid" =~ ^.{2,32}$ ]] ; then
+        bashio::exit.nok "The $band band needs an SSID between 2 and 32 characters long. Set it in the $band block."
+    fi
+    if [ ${#passphrase} -lt 8 ] ; then
+        bashio::exit.nok "The WPA password for $band must be at least 8 characters long."
+    fi
+}
+
+for radio in "${!RADIO_IFACES[@]}" ; do
+    if [ "${RADIO_BANDS[$radio]}" == "5" ] ; then
+        validate_band_credentials "5GHz" "$SSID_5" "$WPA_PASSPHRASE_5"
+    else
+        validate_band_credentials "2.4GHz" "$SSID_24" "$WPA_PASSPHRASE_24"
+    fi
+done
 
 FLAG_LIST_REGEX='^(\[[A-Z0-9][A-Z0-9_+-]*\])+$'
-if [ -n "$HT_CAPAB_2G" ] && ! [[ "$HT_CAPAB_2G" =~ $FLAG_LIST_REGEX ]] ; then
-    bashio::exit.nok "ht_capab_2g must be a list of flags in square brackets, e.g. '[HT40+][SHORT-GI-20]'. Got: $HT_CAPAB_2G"
+if [ -n "$HT_CAPAB_24" ] && ! [[ "$HT_CAPAB_24" =~ $FLAG_LIST_REGEX ]] ; then
+    bashio::exit.nok "band_2_4ghz.ht_capab must be a list of flags in square brackets, e.g. '[HT40+][SHORT-GI-20]'. Got: $HT_CAPAB_24"
 fi
-if [ -n "$HT_CAPAB_5G" ] && ! [[ "$HT_CAPAB_5G" =~ $FLAG_LIST_REGEX ]] ; then
-    bashio::exit.nok "ht_capab_5g must be a list of flags in square brackets, e.g. '[HT40+][SHORT-GI-20]'. Got: $HT_CAPAB_5G"
+if [ -n "$HT_CAPAB_5" ] && ! [[ "$HT_CAPAB_5" =~ $FLAG_LIST_REGEX ]] ; then
+    bashio::exit.nok "band_5ghz.ht_capab must be a list of flags in square brackets, e.g. '[HT40+][SHORT-GI-20]'. Got: $HT_CAPAB_5"
 fi
-if [ -n "$VHT_CAPAB_5G" ] && ! [[ "$VHT_CAPAB_5G" =~ $FLAG_LIST_REGEX ]] ; then
-    bashio::exit.nok "vht_capab_5g must be a list of flags in square brackets, e.g. '[SHORT-GI-80]'. Got: $VHT_CAPAB_5G"
+if [ -n "$VHT_CAPAB_5" ] && ! [[ "$VHT_CAPAB_5" =~ $FLAG_LIST_REGEX ]] ; then
+    bashio::exit.nok "band_5ghz.vht_capab must be a list of flags in square brackets, e.g. '[SHORT-GI-80]'. Got: $VHT_CAPAB_5"
 fi
 if [ -n "$COUNTRY_CODE" ] && ! [[ "$COUNTRY_CODE" =~ ^[A-Z]{2}$ ]] ; then
     bashio::exit.nok "country_code must be a two-letter uppercase country code, e.g. 'GB'. Got: $COUNTRY_CODE"
@@ -200,11 +217,14 @@ resolve_band(){
     local ht40_mode default_ht_capab
 
     if [ "$band" == "5" ] ; then
+        RADIO_SSID=$SSID_5
+        RADIO_WPA_PASSPHRASE=$WPA_PASSPHRASE_5
+        RADIO_HIDE_SSID=$HIDE_SSID_5
         RADIO_HW_MODE=a
-        RADIO_CHANNEL=$CHANNEL_5G
-        RADIO_HT_CAPAB=$HT_CAPAB_5G
-        RADIO_VHT_CAPAB=$VHT_CAPAB_5G
-        RADIO_AC=$IEEE80211AC_5G
+        RADIO_CHANNEL=$CHANNEL_5
+        RADIO_HT_CAPAB=$HT_CAPAB_5
+        RADIO_VHT_CAPAB=$VHT_CAPAB_5
+        RADIO_AC=$IEEE80211AC_5
         if ! [[ " $FIVE_GHZ_CHANNELS " == *" $RADIO_CHANNEL "* ]] ; then
             bashio::exit.nok "Channel $RADIO_CHANNEL is not a 5GHz WiFi channel. Use 36, 40, 44 or 48 (non-DFS), or 149, 153, 157, 161 or 165 where your region allows it."
         fi
@@ -220,9 +240,12 @@ resolve_band(){
             RADIO_IS_DFS=false
         fi
     else
+        RADIO_SSID=$SSID_24
+        RADIO_WPA_PASSPHRASE=$WPA_PASSPHRASE_24
+        RADIO_HIDE_SSID=$HIDE_SSID_24
         RADIO_HW_MODE=g
-        RADIO_CHANNEL=$CHANNEL_2G
-        RADIO_HT_CAPAB=$HT_CAPAB_2G
+        RADIO_CHANNEL=$CHANNEL_24
+        RADIO_HT_CAPAB=$HT_CAPAB_24
         RADIO_VHT_CAPAB=""
         RADIO_AC=false
         RADIO_IS_DFS=false
@@ -252,7 +275,7 @@ resolve_band(){
     esac
 
     if [ "$RADIO_IS_DFS" == "true" ] ; then
-        if [ "$DFS_5G" != "true" ] ; then
+        if [ "$DFS_5" != "true" ] ; then
             bashio::exit.nok "Channel $RADIO_CHANNEL is a DFS channel (52-144). It must listen for radar before it may transmit, and the Raspberry Pi radios cannot do that. Use a non-DFS channel: 36, 40, 44, 48, or 149, 153, 157, 161, 165 where your region allows it, or set 'dfs_5g' to true if your adapter supports radar detection."
         fi
         if [ -z "$COUNTRY_CODE" ] ; then
@@ -272,18 +295,18 @@ write_hostapd_conf(){
     logger "# Setup hostapd for $iface ($band GHz):" 1
     cp /hostapd.conf.template "$conf"
 
-    logger "Add to $conf: ssid=$SSID" 1
-    echo "ssid=$SSID"$'\n' >> "$conf"
+    logger "Add to $conf: ssid=$RADIO_SSID" 1
+    echo "ssid=$RADIO_SSID"$'\n' >> "$conf"
     logger "Add to $conf: wpa_passphrase=********" 1
-    echo "wpa_passphrase=$WPA_PASSPHRASE"$'\n' >> "$conf"
+    echo "wpa_passphrase=$RADIO_WPA_PASSPHRASE"$'\n' >> "$conf"
     logger "Add to $conf: interface=$iface" 1
     echo "interface=$iface"$'\n' >> "$conf"
     logger "Add to $conf: hw_mode=$RADIO_HW_MODE (band $band GHz)" 1
     echo "hw_mode=$RADIO_HW_MODE"$'\n' >> "$conf"
     logger "Add to $conf: channel=$RADIO_CHANNEL" 1
     echo "channel=$RADIO_CHANNEL"$'\n' >> "$conf"
-    logger "Add to $conf: ignore_broadcast_ssid=$HIDE_SSID" 1
-    echo "ignore_broadcast_ssid=$HIDE_SSID"$'\n' >> "$conf"
+    logger "Add to $conf: ignore_broadcast_ssid=$RADIO_HIDE_SSID" 1
+    echo "ignore_broadcast_ssid=$RADIO_HIDE_SSID"$'\n' >> "$conf"
     logger "Add to $conf: ieee80211n=1" 1
     echo "ieee80211n=1"$'\n' >> "$conf"
     logger "Add to $conf: ht_capab=$RADIO_HT_CAPAB" 1
@@ -375,26 +398,28 @@ elif [ ${#DENY_MAC_ADDRESSES} -ge 1 ]; then
 fi
 
 if [ $DEBUG -ge 1 ] ; then
-    if [ "$BAND" == "5" ] || [ "$BAND_2" == "5" ] ; then
-        logger "# A 5GHz band is in use. Current regulatory domain:" 1
-        iw reg get 2>/dev/null || true
-    fi
+    case " ${RADIO_BANDS[*]} " in
+        *" 5 "*) logger "# A 5GHz band is in use. Current regulatory domain:" 1
+                 iw reg get 2>/dev/null || true ;;
+    esac
     logger "# Channels reported by the drivers ('no IR' = cannot host an AP there):" 1
     iw phy 2>/dev/null | grep -E '^[[:space:]]*\*[[:space:]]*[0-9]+ MHz' | sed 's/^[[:space:]]*//' || true
 fi
 
-# Build one hostapd config per radio
-write_hostapd_conf "$INTERFACE" "$BAND" /hostapd1.conf
-if [ "$BRIDGE_ENABLED" == "true" ] ; then
-    write_hostapd_conf "$INTERFACE_2" "$BAND_2" /hostapd2.conf
-fi
+# Build one hostapd config per active band
+RADIO_CONFS=()
+for radio in "${!RADIO_IFACES[@]}" ; do
+    conf="/hostapd$((radio + 1)).conf"
+    write_hostapd_conf "${RADIO_IFACES[$radio]}" "${RADIO_BANDS[$radio]}" "$conf"
+    RADIO_CONFS+=("$conf")
+done
 
 
 # Set address for the selected interface. Not sure why this is now not being set via /etc/network/interfaces, but maybe interfaces file is no longer required...
 ifconfig $TARGET_INTERFACE $ADDRESS netmask $NETMASK broadcast $BROADCAST
 
 # Setup dnsmasq.conf if DHCP is enabled in config
-if $(bashio::config.true "dhcp"); then
+if $(bashio::config.true "general.dhcp"); then
     logger "# DHCP enabled. Setup dnsmasq:" 1
     logger "Add to dnsmasq.conf: dhcp-range=$DHCP_START_ADDR,$DHCP_END_ADDR,12h" 1
         echo "dhcp-range=$DHCP_START_ADDR,$DHCP_END_ADDR,12h"$'\n' >> /dnsmasq.conf
@@ -466,7 +491,7 @@ else
 fi
 
 # Setup Client Internet Access
-if $(bashio::config.true "client_internet_access"); then
+if $(bashio::config.true "general.client_internet_access"); then
     ## Add masquerade if not already present
     if ! is_masquerading_enabled; then
         iptables-nft -t nat -A POSTROUTING -o $DEFAULT_ROUTE_INTERFACE -j MASQUERADE -m comment --comment "ap-addon-inet"
@@ -491,7 +516,7 @@ else
 fi
 
 # Start dnsmasq if DHCP is enabled in config
-if $(bashio::config.true "dhcp"); then
+if $(bashio::config.true "general.dhcp"); then
     logger "## Starting dnsmasq daemon" 1
     if ! dnsmasq -C /dnsmasq.conf ; then
         logger "dnsmasq failed to start, so clients will not be handed an IP address and will keep reconnecting. Check that dhcp_start_addr/dhcp_end_addr are on the $ADDRESS/$NETMASK subnet." 0
@@ -501,33 +526,23 @@ if $(bashio::config.true "dhcp"); then
 fi
 
 if [ $DEBUG -ge 1 ] ; then
-    echo "# Effective /hostapd1.conf:"
-    sed 's/^wpa_passphrase=.*/wpa_passphrase=********/' /hostapd1.conf
-    if [ "$BRIDGE_ENABLED" == "true" ] ; then
-        echo "# Effective /hostapd2.conf:"
-        sed 's/^wpa_passphrase=.*/wpa_passphrase=********/' /hostapd2.conf
-    fi
+    for conf in "${RADIO_CONFS[@]}" ; do
+        echo "# Effective $conf:"
+        sed 's/^wpa_passphrase=.*/wpa_passphrase=********/' "$conf"
+    done
 fi
 
-logger "## Starting hostapd daemon" 1
 # If debug level is greater than 1, start hostapd in debug mode
 HOSTAPD_PIDS=()
-if [ $DEBUG -gt 1 ]; then
-    hostapd -d /hostapd1.conf &
-else
-    hostapd /hostapd1.conf &
-fi
-HOSTAPD_PIDS+=("$!")
-
-if [ "$BRIDGE_ENABLED" == "true" ] ; then
-    logger "## Starting second hostapd daemon on $INTERFACE_2" 1
+for radio in "${!RADIO_IFACES[@]}" ; do
+    logger "## Starting hostapd daemon for ${RADIO_IFACES[$radio]} (${RADIO_BANDS[$radio]} GHz)" 1
     if [ $DEBUG -gt 1 ]; then
-        hostapd -d /hostapd2.conf &
+        hostapd -d "${RADIO_CONFS[$radio]}" &
     else
-        hostapd /hostapd2.conf &
+        hostapd "${RADIO_CONFS[$radio]}" &
     fi
     HOSTAPD_PIDS+=("$!")
-fi
+done
 
 if [ ${#HOSTAPD_PIDS[@]} -gt 1 ] ; then
     # One radio failing takes the add-on down, rather than half-running

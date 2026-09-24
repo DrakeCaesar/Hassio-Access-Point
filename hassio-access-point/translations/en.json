@@ -1,88 +1,106 @@
 {
 	"configuration": {
-		"ssid": {
-			"name": "SSID"
+		"general": {
+			"name": "General",
+			"fields": {
+				"interface_2_4ghz": {
+					"name": "2.4GHz Interface"
+				},
+				"interface_5ghz": {
+					"name": "5GHz Interface"
+				},
+				"country_code": {
+					"name": "Country Code"
+				},
+				"address": {
+					"name": "Host IP Address"
+				},
+				"netmask": {
+					"name": "Subnet Netmask"
+				},
+				"broadcast": {
+					"name": "Subnet Broadcast Address"
+				},
+				"dhcp": {
+					"name": "Enable DHCP Server"
+				},
+				"dhcp_start_addr": {
+					"name": "DHCP IP Range Start"
+				},
+				"dhcp_end_addr": {
+					"name": "DHCP IP Range End"
+				},
+				"allow_mac_addresses": {
+					"name": "MAC Address Allowlist"
+				},
+				"deny_mac_addresses": {
+					"name": "MAC Address Blocklist"
+				},
+				"client_internet_access": {
+					"name": "Enable Internet Access"
+				},
+				"client_dns_override": {
+					"name": "Client DNS"
+				},
+				"debug": {
+					"name": "Debug Logging"
+				},
+				"hostapd_config_override": {
+					"name": "HOSTAPD Custom Configuration"
+				},
+				"dnsmasq_config_override": {
+					"name": "DNSMASQ Custom Configuration"
+				}
+			}
 		},
-		"wpa_passphrase": {
-			"name": "WPA2 Password"
+		"band_2_4ghz": {
+			"name": "2.4GHz",
+			"fields": {
+				"ssid": {
+					"name": "SSID"
+				},
+				"wpa_passphrase": {
+					"name": "WPA2 Password"
+				},
+				"hide_ssid": {
+					"name": "Hide Network SSID"
+				},
+				"channel": {
+					"name": "Channel"
+				},
+				"ht_capab": {
+					"name": "HT Capabilities"
+				}
+			}
 		},
-		"band": {
-			"name": "WiFi Band"
-		},
-		"interface_2": {
-			"name": "Second Network Interface"
-		},
-		"band_2": {
-			"name": "Second WiFi Band"
-		},
-		"channel_2g": {
-			"name": "2.4GHz Channel"
-		},
-		"ht_capab_2g": {
-			"name": "2.4GHz HT Capabilities"
-		},
-		"channel_5g": {
-			"name": "5GHz Channel"
-		},
-		"ht_capab_5g": {
-			"name": "5GHz HT Capabilities"
-		},
-		"ieee80211ac_5g": {
-			"name": "Enable 802.11ac"
-		},
-		"vht_capab_5g": {
-			"name": "5GHz VHT Capabilities"
-		},
-		"dfs_5g": {
-			"name": "Allow DFS Channels"
-		},
-		"country_code": {
-			"name": "Country Code"
-		},
-		"address": {
-			"name": "Host IP Address"
-		},
-		"netmask": {
-			"name": "Subnet Netmask"
-		},
-		"broadcast": {
-			"name": "Subnet Broadcast Address"
-		},
-		"interface": {
-			"name": "Network Interface"
-		},
-		"hide_ssid": {
-			"name": "Hide Network SSID"
-		},
-		"dhcp": {
-			"name": "Enable DHCP Server"
-		},
-		"dhcp_start_addr": {
-			"name": "DHCP IP Range Start"
-		},
-		"dhcp_end_addr": {
-			"name": "DHCP IP Range End"
-		},
-		"allow_mac_addresses": {
-			"name": "MAC Address Allowlist"
-		},
-		"deny_mac_addresses": {
-			"name": "MAC Address Blocklist"
-		},
-		"debug": {
-			"name": "Debug Logging"
-		},
-		"hostapd_config_override": {
-			"name": "HOSTAPD Custom Configuration"
-		},
-		"client_internet_access": {
-			"name": "Enable Internet Access"
-		},
-		"client_dns_override": {
-			"name": "Client DNS "
-		},
-		"dnsmasq_config_override": {
-			"name": "DNSMASQ Custom Configuration"
+		"band_5ghz": {
+			"name": "5GHz",
+			"fields": {
+				"ssid": {
+					"name": "SSID"
+				},
+				"wpa_passphrase": {
+					"name": "WPA2 Password"
+				},
+				"hide_ssid": {
+					"name": "Hide Network SSID"
+				},
+				"channel": {
+					"name": "Channel"
+				},
+				"ht_capab": {
+					"name": "HT Capabilities"
+				},
+				"ieee80211ac": {
+					"name": "Enable 802.11ac"
+				},
+				"vht_capab": {
+					"name": "VHT Capabilities"
+				},
+				"dfs": {
+					"name": "Allow DFS Channels"
+				}
+			}
 		}
 	}
 }
