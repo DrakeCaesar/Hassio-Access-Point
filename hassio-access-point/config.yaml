@@ -1,6 +1,6 @@
 ---
 name: Hass.io Access Point
-version: 0.6.11
+version: 0.6.12
 slug: hassio-access-point
 description: Create a WiFi access point to directly connect devices to Home Assistant
 arch: [armhf, armv7, aarch64, amd64, i386]
@@ -54,7 +54,7 @@ schema:
   channel_2g: int(1,13)
   ht_capab_2g: list(|[SHORT-GI-20]|[SHORT-GI-20][DSSS_CCK-40]|[HT40+][SHORT-GI-20][SHORT-GI-40]|[HT40-][SHORT-GI-20][SHORT-GI-40]|[HT40+][SHORT-GI-20][DSSS_CCK-40]|[HT40-][SHORT-GI-20][DSSS_CCK-40])
   channel_5g: int(1,196)
-  ht_capab_5g: list(|[SHORT-GI-20]|[HT40+][SHORT-GI-20][SHORT-GI-40]|[HT40-][SHORT-GI-20][SHORT-GI-40])
+  ht_capab_5g: list(|[SHORT-GI-20]|[HT40+][SHORT-GI-20]|[HT40-][SHORT-GI-20]|[HT40+][SHORT-GI-20][SHORT-GI-40]|[HT40-][SHORT-GI-20][SHORT-GI-40])
   ieee80211ac_5g: bool
   vht_capab_5g: list(|[SHORT-GI-80]|[SHORT-GI-80][HTC-VHT]|[SHORT-GI-80][RXLDPC]|[SHORT-GI-80][RXLDPC][MAX-MPDU-11454]|[MAX-MPDU-11454])
   dfs_5g: bool
